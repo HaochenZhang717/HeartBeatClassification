@@ -1,0 +1,37 @@
+# ECG-RAMBA Backend Dependencies
+# ================================
+
+# Core Framework
+fastapi
+uvicorn[standard]
+python-multipart
+pydantic
+pydantic-settings
+
+# Database
+sqlalchemy
+aiosqlite        # SQLite async (local dev)
+asyncpg          # PostgreSQL async (production)
+
+# Authentication
+python-jose[cryptography]
+passlib[bcrypt]
+bcrypt
+
+# LLM / GenAI
+google-generativeai==0.5.0
+
+# ML/Signal Processing
+torch
+numpy
+scipy
+joblib
+wfdb
+
+# Rate Limiting & Monitoring
+slowapi
+prometheus-fastapi-instrumentator
+
+# Testing
+pytest
+httpx

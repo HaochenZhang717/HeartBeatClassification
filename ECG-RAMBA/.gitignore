@@ -1,0 +1,62 @@
+
+# Agent
+.agent/
+.gemini/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Data
+data/
+!data/README.md
+!data/.gitkeep
+!web_app/backend/data/knowledge/
+*.csv
+*.mat
+*.hea
+*.zip
+*.tar.gz
+
+# Models
+models/
+!models/README.md
+!models/.gitkeep
+*.pt
+*.pth
+*.ckpt
+*.onnx
+*.pkl
+*.h5
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Jupyter Notebooks
+.ipynb_checkpoints/
+
+# Virtual Environments
+venv/
+env/
+.env
+.env.local
+
+# Node.js
+node_modules/
+dist/
+.vercel/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test artifacts
+test_import.py

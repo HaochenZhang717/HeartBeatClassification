@@ -1,0 +1,49 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Data files (large, binary)
+processed_data/
+heartbeat_dataset/*.npz
+heartbeat_dataset/*.npy
+heartbeat_dataset/*.h5
+
+# Model checkpoints and run outputs
+runs/
+*.pt
+*.pth
+*.onnx
+
+# PDFs (papers, proposal)
+*.pdf
+
+# Logs
+*.log
+process_log.txt
+
+# macOS
+.DS_Store
+.AppleDouble
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# IDE
+.vscode/
+.idea/
