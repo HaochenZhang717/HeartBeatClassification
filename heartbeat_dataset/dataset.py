@@ -97,6 +97,7 @@ class HeartbeatDataset:
         indices: np.ndarray | None = None,
         return_torch: bool = False,
         cache_records: int = 8,
+        preload: bool = False,
     ) -> None:
         self.index_path = Path(index_path)
         self.pre_samples = int(pre_samples)
@@ -107,6 +108,7 @@ class HeartbeatDataset:
         self.return_torch = return_torch
         self._cache = _SignalCache(max_records=cache_records)
         self._record_stats: dict[str, tuple[np.ndarray, np.ndarray]] = {}
+        self._windows: np.ndarray | None = None
 
         if normalize not in {"none", "zscore-window", "zscore-record"}:
             raise ValueError(f"unknown normalize={normalize!r}")
@@ -136,6 +138,9 @@ class HeartbeatDataset:
             self._torch = __import__("torch")
         else:
             self._torch = None
+
+        if preload:
+            self._preload_windows()
 
     # ----- introspection ------------------------------------------------ #
     def __len__(self) -> int:
@@ -197,10 +202,62 @@ class HeartbeatDataset:
             )
         return win  # (window, 2) float32
 
+    def _preload_windows(self) -> None:
+        """Materialize every (window, leads_out) sample into a single ndarray.
+
+        Pre-sorts beats by record_path so each per-record .npz is loaded once.
+        Memory: ~ n * window * leads_out * 4 bytes (≈5 GB for the full train pool).
+        """
+        n = self._n
+        leads_out = 2 if self.leads == "both" else 1
+        arr = np.empty((n, self.window, leads_out), dtype=np.float32)
+
+        paths = self._rows["record_path"]
+        centers = self._rows["sample_idx"]
+        order = np.argsort(paths, kind="stable")
+
+        last_path: str | None = None
+        sig: np.ndarray | None = None
+        print(f"[preload] materializing {n} windows ...")
+        for j, i in enumerate(order):
+            path = str(paths[i])
+            if path != last_path:
+                sig = np.load(path, allow_pickle=False)["signal"]
+                last_path = path
+            win = self._window(sig, int(centers[i])).astype(np.float32, copy=False)
+            if self.normalize == "zscore-window":
+                mu = win.mean(axis=0, keepdims=True)
+                sd = win.std(axis=0, keepdims=True) + 1e-6
+                win = (win - mu) / sd
+            elif self.normalize == "zscore-record":
+                mu, sd = self._get_record_stats(path, sig)
+                win = (win - mu) / sd
+            if self.leads == 0:
+                win = win[:, 0:1]
+            elif self.leads == 1:
+                win = win[:, 1:2]
+            arr[i] = win
+            if (j + 1) % 250_000 == 0:
+                print(f"[preload]   {j + 1}/{n}")
+        self._windows = arr
+        # The per-record signal cache is no longer needed once windows are in RAM.
+        self._cache = _SignalCache(max_records=1)
+        print(f"[preload] done — {arr.nbytes / 1e9:.2f} GB resident")
+
     def __getitem__(self, i: int):
+        label = int(self._rows["label_int"][i])
+
+        if self._windows is not None:
+            win = self._windows[i]
+            if self._torch is not None:
+                return (
+                    self._torch.from_numpy(win),
+                    self._torch.tensor(label, dtype=self._torch.long),
+                )
+            return win, label
+
         path = str(self._rows["record_path"][i])
         center = int(self._rows["sample_idx"][i])
-        label = int(self._rows["label_int"][i])
 
         sig = self._cache.get(path)
         win = self._window(sig, center).astype(np.float32, copy=False)

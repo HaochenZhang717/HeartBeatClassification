@@ -79,6 +79,7 @@ def build_datasets(
     normalize: str = "zscore-window",
     return_torch: bool = True,
     cache_records: int = DEFAULT_CACHE_RECORDS,
+    preload: bool = False,
 ) -> tuple[HeartbeatDataset, HeartbeatDataset, HeartbeatDataset]:
     train_idx, val_idx, test_idx = build_splits(
         index_path, val_frac=val_frac, seed=seed)
@@ -90,6 +91,7 @@ def build_datasets(
         normalize=normalize,
         return_torch=return_torch,
         cache_records=cache_records,
+        preload=preload,
     )
     train_ds = HeartbeatDataset(indices=train_idx, **common)
     val_ds = HeartbeatDataset(indices=val_idx, **common)

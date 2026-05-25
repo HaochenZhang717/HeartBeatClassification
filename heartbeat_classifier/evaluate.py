@@ -34,6 +34,8 @@ def parse_args():
                          "png; defaults to the checkpoint's directory")
     ap.add_argument("--batch-size", type=int, default=256)
     ap.add_argument("--num-workers", type=int, default=0)
+    ap.add_argument("--preload", action="store_true",
+                    help="Materialize all DS2 windows into RAM (~0.1 GB).")
     return ap.parse_args()
 
 
@@ -52,12 +54,18 @@ def main():
     print(f"[setup] classes={classes} (loaded from checkpoint)")
 
     _, _, test_ds = build_datasets(
-        index_path=args.index_path, classes=classes, return_torch=True)
+        index_path=args.index_path, classes=classes, return_torch=True,
+        preload=args.preload)
     print(f"[data] DS2 test set: {len(test_ds)} beats")
     print(f"[data] class counts: {test_ds.class_counts()}")
 
+    loader_kw: dict = dict(num_workers=args.num_workers,
+                           pin_memory=(device.type == "cuda"))
+    if args.num_workers > 0:
+        loader_kw["persistent_workers"] = True
+        loader_kw["prefetch_factor"] = 4
     loader = DataLoader(test_ds, batch_size=args.batch_size, shuffle=False,
-                        num_workers=args.num_workers)
+                        **loader_kw)
     model = HeartbeatCNN(in_channels=2, n_classes=n_classes).to(device)
     model.load_state_dict(ckpt["state_dict"])
     model.eval()

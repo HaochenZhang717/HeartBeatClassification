@@ -47,6 +47,9 @@ def parse_args():
     ap.add_argument("--num-workers", type=int, default=0)
     ap.add_argument("--patience", type=int, default=8,
                     help="Early stopping patience on val macro-F1")
+    ap.add_argument("--preload", action="store_true",
+                    help="Materialize all windows into RAM once (~5 GB for full "
+                         "train pool). Trades startup time for ~0-cost __getitem__.")
     return ap.parse_args()
 
 
@@ -87,6 +90,7 @@ def main():
         val_frac=args.val_frac,
         seed=args.seed,
         return_torch=True,
+        preload=args.preload,
     )
     print(f"[data] train={len(train_ds)}  val={len(val_ds)}")
     print(f"[data] train class counts: {train_ds.class_counts()}")
@@ -94,11 +98,14 @@ def main():
 
     sampler = make_balanced_sampler(train_ds)
     pin = (device.type == "cuda")
+    loader_kw: dict = dict(num_workers=args.num_workers, pin_memory=pin)
+    if args.num_workers > 0:
+        loader_kw["persistent_workers"] = True
+        loader_kw["prefetch_factor"] = 4
     train_loader = DataLoader(train_ds, batch_size=args.batch_size,
-                              sampler=sampler, num_workers=args.num_workers,
-                              pin_memory=pin)
+                              sampler=sampler, **loader_kw)
     val_loader = DataLoader(val_ds, batch_size=args.batch_size, shuffle=False,
-                            num_workers=args.num_workers, pin_memory=pin)
+                            **loader_kw)
 
     model = HeartbeatCNN(in_channels=2, n_classes=n_classes).to(device)
     loss_fn = FocalLoss(gamma=args.gamma, alpha=None)
