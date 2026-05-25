@@ -18,7 +18,7 @@ INDEX="${INDEX:-heartbeat_dataset/beats_index.npz}"
 OUT_DIR="${OUT_DIR:-runs/nsv_baseline}"
 # GPU 0 is often busy with another user on this box; default to GPU 1.
 export CUDA_VISIBLE_DEVICES="${CUDA_VISIBLE_DEVICES:-1}"
-NUM_WORKERS="${NUM_WORKERS:-8}"
+NUM_WORKERS="${NUM_WORKERS:-16}"
 BATCH_SIZE="${BATCH_SIZE:-512}"
 PRELOAD_FLAG="${PRELOAD_FLAG:---preload}"   # set PRELOAD_FLAG="" to disable
 
